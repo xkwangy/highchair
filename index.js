@@ -3,7 +3,7 @@
 var Step = require('step');
 var _ = require('underscore');
 var fs = require('fs');
-var instanceMetadata = require('./lib/instance-metadata');
+var metadata = require('aws-lib').createMetaDataClient();
 var ec2Api = require('./lib/ec2-api');
 
 var optimist = require('optimist')
@@ -61,12 +61,11 @@ var run = function(options) {
 Step(function() {
     // --filter.instanceId _self
     if (argv.filter && argv.filter.instanceId == '_self') {
-        var next = this;
-        instanceMetadata.loadId(function(err, id) {
-            if (err) next(err);
+        metadata.call({ endpoint: 'instance-id' }, function(err, id) {
+            if (err) return this(err);
             argv.filter.instanceId = id;
-            next();
-        });
+            this();
+        }.bind(this));
     }
     else { this() }
 }, function(err) {
@@ -83,13 +82,13 @@ Step(function() {
     _(lookup).each(function(key) {
         var next = group();
         Step(function() {
-            instanceMetadata.loadId(this.parallel())
-            instanceMetadata.loadAz(this.parallel());
+            metadata.call({ endpoint: 'instance-id' }, this.parallel());
+            metadata.call({ endpoint: 'placement/availability-zone' }, this.parallel());
         }, function(err, id, az) {
             if (err) throw (err);
             if (tagCache) return this(null, tagCache);
             var filters = {'resource-type': 'instance', 'resource-id': id};
-            ec2Api.loadTags(ec2Api.createClients(argv, [az.region]), filters, this);
+            ec2Api.loadTags(ec2Api.createClients(argv, [az.substring(0, az.length - 1)]), filters, this);
         }, function(err, tags) {
             if (err) return group(err);
             tagCache = tags;
@@ -108,9 +107,9 @@ Step(function() {
                    'sa-east-1'];
     } else if (regions.indexOf('_self') !== -1) {
         // --regions _self
-        instanceMetadata.loadAz(function(err, az) {
+        metadata.call({ endpoint: 'placement/availability-zone' }, function(err, az) {
             if (err) return this(err);
-            regions[regions.indexOf('_self')] = az.region;
+            regions[regions.indexOf('_self')] = az.substring(0, az.length - 1);
             this();
         }.bind(this));
     } else {
