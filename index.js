@@ -2,7 +2,6 @@
 
 var Step = require('step');
 var _ = require('underscore');
-var fs = require('fs');
 var metadata = require('aws-lib').createMetaDataClient();
 var ec2Api = require('./lib/ec2-api');
 
