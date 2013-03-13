@@ -7,16 +7,15 @@ var instanceMetadata = require('./lib/instance-metadata');
 var ec2Api= require('./lib/ec2-api');
 
 var optimist = require('optimist')
-    .usage('A tool for working with swarms of MapBox servers.\n' +
-           'Usage: $0 <command> [options]\n\n' +
-           'Available commands:\n' +
-           '  metadata: load given attribute from EC2 API\n')
+    .usage('A tool for working with swarms of MapBox servers.\n' + 'Usage: $0 [options]')
     .describe('config', 'Path to JSON configuration file that contains awsKey and awsSecret.')
     .describe('attribute', 'The EC2 API instance attribute to load from the swarm. Required for the metadata command.')
-    .describe('filter', 'Applies a filter to results based on EC2 instance attributes and tags. Use `filter.<attributeName>`. Multiple filters are applied with the AND operator. Optional for the metadata command.')
+    .describe('filter', 'Provide filters specified like --filter.<attribute> to limit results.')
     .describe('awsKey', 'awsKey, overrides the value in gconfig file if both are provided.')
     .describe('awsSecret', 'awsSecret, overrides the value in config file if both are provided.')
+    .default('attribute', 'instanceId')
     .default('regions', 'us-east-1,us-west-1,us-west-2,eu-west-1,ap-southeast-1,ap-northeast-1,sa-east-1')
+    .demand(['awsKey', 'awsSecret'])
     .config('config');
 var argv = optimist.argv;
 
@@ -25,30 +24,11 @@ if (argv.help) {
     process.exit(0);
 }
 
-var command = argv._[0];
-if (!command) command = 'metadata';
-if (!_(['metadata', 'classify']).include(command)) {
-    optimist.showHelp();
-    console.error('Invalid command %s.', command);
-    process.exit(1);
-}
-
-if (command === 'metadata' && !argv.attribute) {
-    optimist.showHelp();
-    console.error('Missing --attribute option required for %s command.', command);
-    process.exit(1);
-}
-
 var regions = argv.regions.split(',');
 
-if (argv.awsKey) argv.awsKey = argv.awsKey;
-if (argv.awsSecret) argv.awsSecret= argv.awsSecret;
-
-var swarm = {};
-
-swarm.metadata = function() {
+var run = function(options) {
     Step(function() {
-        ec2Api.loadInstances(ec2Api.createClients(argv, regions), argv.filter, this);
+        ec2Api.loadInstances(ec2Api.createClients(options, regions), options.filter, this);
     }, function(err, instances) {
         if (err) throw err;
         var possibleAttr = _(instances).chain()
@@ -56,16 +36,16 @@ swarm.metadata = function() {
             .flatten()
             .uniq()
             .value();
-        if (instances.length && !_(possibleAttr).include(argv.attribute)) {
+        if (instances.length && !_(possibleAttr).include(options.attribute)) {
             optimist.showHelp();
             console.error('Invalid attribute %s.\n\nAvailable attributes are:\n%s',
-                argv.attribute, possibleAttr.join(', '));
+                options.attribute, possibleAttr.join(', '));
             process.exit(1);
         }
         if (!instances.length) console.log("");
         else {
             console.log(_(instances).chain()
-                .pluck(argv.attribute)
+                .pluck(options.attribute)
                 .compact()
                 .filter(_.isString)
                 .uniq()
@@ -73,7 +53,6 @@ swarm.metadata = function() {
                 .join('\n'));
         }
     });
-
 }
 
 // If any supported arguments have the `_self` value we resolve then first, and
@@ -135,5 +114,5 @@ Step(function() {
     else { this() }
 }, function(err) {
     if (err) throw err;
-    swarm[command]();
+    run(argv);
 });
