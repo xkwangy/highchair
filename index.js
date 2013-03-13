@@ -1,13 +1,11 @@
-// A tool for working with swarms of MapBox servers.
-
 var Step = require('step');
 var _ = require('underscore');
 var metadata = require('aws-lib').createMetaDataClient();
 var ec2Api = require('./lib/ec2-api');
 
 var optimist = require('optimist')
-    .usage('A tool for working with swarms of MapBox servers.\n' + 'Usage: $0 [options]')
-    .describe('attribute', 'The EC2 API instance attribute to load from the swarm. Required for the metadata command.')
+    .usage('An EC2 attribute query tool.\n' + 'Usage: $0 [options]')
+    .describe('attribute', 'The EC2 API instance attribute to list.')
     .describe('filter', 'Provide filters specified like --filter.<attribute> to limit results.')
     .describe('config', 'Path to JSON configuration file that contains awsKey and awsSecret.')
     .describe('awsKey', 'awsKey, overrides the value in gconfig file if both are provided.')
