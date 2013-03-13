@@ -4,17 +4,18 @@ var Step = require('step');
 var _ = require('underscore');
 var fs = require('fs');
 var instanceMetadata = require('./lib/instance-metadata');
-var ec2Api= require('./lib/ec2-api');
+var ec2Api = require('./lib/ec2-api');
 
 var optimist = require('optimist')
     .usage('A tool for working with swarms of MapBox servers.\n' + 'Usage: $0 [options]')
-    .describe('config', 'Path to JSON configuration file that contains awsKey and awsSecret.')
     .describe('attribute', 'The EC2 API instance attribute to load from the swarm. Required for the metadata command.')
     .describe('filter', 'Provide filters specified like --filter.<attribute> to limit results.')
+    .describe('config', 'Path to JSON configuration file that contains awsKey and awsSecret.')
     .describe('awsKey', 'awsKey, overrides the value in gconfig file if both are provided.')
     .describe('awsSecret', 'awsSecret, overrides the value in config file if both are provided.')
+    .describe('regions', 'A comma-separated list of EC2 regions to query. May include _self.')
     .default('attribute', 'instanceId')
-    .default('regions', 'us-east-1,us-west-1,us-west-2,eu-west-1,ap-southeast-1,ap-northeast-1,sa-east-1')
+    .default('regions', '_all')
     .demand(['awsKey', 'awsSecret'])
     .config('config');
 var argv = optimist.argv;
@@ -101,17 +102,20 @@ Step(function() {
 
 }, function(err) {
     if (err) throw err;
-    // --regions _self
-    var i = regions.indexOf('_self');
-    if (i !== -1) {
-        var next = this;
+    if (regions.indexOf('_all') === 0) {
+        regions = ['us-east-1', 'us-west-1', 'us-west-2',
+                   'eu-west-1', 'ap-southeast-1' , 'ap-northeast-1',
+                   'sa-east-1'];
+    } else if (regions.indexOf('_self') !== -1) {
+        // --regions _self
         instanceMetadata.loadAz(function(err, az) {
-            if (err) next(err);
-            regions[i] = az.region;
-            next();
-        });
+            if (err) return this(err);
+            regions[regions.indexOf('_self')] = az.region;
+            this();
+        }.bind(this));
+    } else {
+        this();
     }
-    else { this() }
 }, function(err) {
     if (err) throw err;
     run(argv);
