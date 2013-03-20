@@ -102,6 +102,7 @@ Step(function() {
         regions = ['us-east-1', 'us-west-1', 'us-west-2',
                    'eu-west-1', 'ap-southeast-1' , 'ap-northeast-1',
                    'sa-east-1'];
+        this();
     } else if (regions.indexOf('_self') !== -1) {
         // --regions _self
         metadata.call({ endpoint: 'placement/availability-zone' }, function(err, az) {
