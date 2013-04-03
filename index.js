@@ -13,7 +13,6 @@ var optimist = require('optimist')
     .describe('regions', 'A comma-separated list of EC2 regions to query. May include _self.')
     .default('attribute', 'instanceId')
     .default('regions', '_all')
-    .demand(['awsKey', 'awsSecret'])
     .config('config');
 var argv = optimist.argv;
 
