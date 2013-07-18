@@ -1,5 +1,7 @@
 ![](http://f.cl.ly/items/3S2V062o3e1p3i040d1K/Image%202013.03.13%205:37:34%20PM.png)
 
+**This is the _future successor to [swarm](https://github.com/mapbox/swarm)_. For the present time,
+use [swarm](https://github.com/mapbox/swarm) instead.**
 
 An EC2 attribute query tool. Highchair lets you quickly get information about the EC2s you have running and filter based on certain metadata.
 
